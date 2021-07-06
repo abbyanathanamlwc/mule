@@ -30,7 +30,7 @@ http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mu
 		<set-variable value='#["https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/findByDistrict?district_id=300&amp;date="++ now() as String {format: "dd-MM-y"}]' doc:name="Set Variable" doc:id="a1da1997-0ca6-4710-a8bf-9d7c743c056c" variableName="dateinput"/>
 		<logger level="INFO" doc:name="Logger" doc:id="7b7fd150-4789-4bff-8f20-8cf4be9c949c" message="#[vars.dateinput]"/>
 		<set-payload value='#[[{
-	name: "Test2",
+	name: "Test23",
 	available_capacity_dose1: 2
 }]]' doc:name="Set Payload" doc:id="b3cc4a61-d9ef-4353-8de5-4f7cf343db9d" />
 		<logger level="INFO" doc:name="Logger" doc:id="8d1fe365-0912-4414-bb57-3ac0c1a7d798" message="Test 4 Abby "/>
