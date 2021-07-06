@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce" xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:email="http://www.mulesoft.org/schema/mule/email"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="175fafab-60c0-4f6a-87eb-9c0c98a77202" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="d5169887-f40f-41f2-9da2-b9a21b195af6">
+		<http:request-connection host="cdn-api.co-vin.in" protocol="HTTPS"/>
+	</http:request-config>
+	<email:smtp-config name="Email_SMTP" doc:name="Email SMTP" doc:id="9ae25c0f-1184-43dc-9885-afb0eb264e1e" >
+		<email:smtp-connection host="smtp.gmail.com" port="587" user="abbyanathanam@gmail.com" password="21091991@!Anab" >
+			<email:properties > 
+<email:property key="mail.smtp.starttls.enable" value="true" /> 
+</email:properties>
+		</email:smtp-connection>
+	</email:smtp-config>
+	<salesforce:sfdc-config name="Salesforce_Config" doc:name="Salesforce Config" doc:id="0e240bfb-72ed-48f8-9f2e-8e31b8be54c3" >
+		<salesforce:basic-connection username="abbyanathanam@gmail.com" password="21091991@!Anat" securityToken="Ir7BTv7OGub0E9TS5I6ixRDq" />
+	</salesforce:sfdc-config>
+	<flow name="covidFlow" doc:id="30e5ebdd-5152-42eb-81f7-1ecee7558c9c" >
+		<http:listener doc:name="Listener" doc:id="e8986988-0b7d-4e4c-8b71-78caddc7cdd2" config-ref="HTTP_Listener_config" path="/covid"/>
+		<set-variable value='#[""]' doc:name="Set Variable" doc:id="92c1bc24-5ad8-4241-9247-b1dbb0c96c1b" variableName="Output"/>
+		<set-variable value='#["https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/findByDistrict?district_id=300&amp;date="++ now() as String {format: "dd-MM-y"}]' doc:name="Set Variable" doc:id="a1da1997-0ca6-4710-a8bf-9d7c743c056c" variableName="dateinput"/>
+		<logger level="INFO" doc:name="Logger" doc:id="7b7fd150-4789-4bff-8f20-8cf4be9c949c" message="#[vars.dateinput]"/>
+		<set-payload value='#[[{
+	name: "Test1",
+	available_capacity_dose1: 2
+}]]' doc:name="Set Payload" doc:id="b3cc4a61-d9ef-4353-8de5-4f7cf343db9d" />
+		<logger level="INFO" doc:name="Logger" doc:id="8d1fe365-0912-4414-bb57-3ac0c1a7d798" message="Test"/>
+		<foreach doc:name="For Each" doc:id="a3d72087-cd6f-4795-bf59-35cf8021bd4e" collection="#[payload]">
+			<ee:transform doc:name="Transform Message" doc:id="513c31b1-f802-4f6c-871c-d54bec204820" >
+				<ee:message >
+				</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="Output" ><![CDATA[%dw 2.0
+output text/plain
+var out = if(payload.available_capacity_dose1 > 1)("Name :" ++ payload.name as String ++ " Dose1 :" ++ payload.available_capacity_dose1) else null
+--- 
+vars.Output as String default '' ++ "<br/>" ++ out as String 
+]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+		</foreach>
+		<logger level="INFO" doc:name="Logger" doc:id="0e0ca716-21af-4869-ab1f-5c8b24c79902" message="#[vars.Output]"/>
+		<ee:transform doc:name="Transform Message" doc:id="029deef8-af42-492e-8a72-8256c1d5b6dd" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+body: vars.Output
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<salesforce:invoke-apex-rest-method className="AccountManager" methodName="^/Account^HttpPost^String" doc:name="Invoke apex rest method" doc:id="17b8f177-9372-4503-9610-239fd5323c9e" config-ref="Salesforce_Config">
+			<salesforce:request ><![CDATA[#[{
+body:payload
+}]]]></salesforce:request>
+		</salesforce:invoke-apex-rest-method>
+		<set-payload value="#[output application/json --- payload]" doc:name="Set Payload" doc:id="cc727f17-27aa-4467-a409-ac26d7a70f4c" />
+	</flow>
+</mule>
